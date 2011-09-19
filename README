@@ -1,0 +1,9 @@
+
+Create the following folders :
+- /etc/bind/namecoin/
+- ./cache
+- ./q
+
+Launch : ./update_domains_bind.sh &
+
+
