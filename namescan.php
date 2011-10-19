@@ -1,189 +1,166 @@
 <?php
 error_reporting(E_ALL ^ E_NOTICE);
 
+require './config.php';
 require './function.php';
 require './jsonRPCClient.php';
+require './name.class.php';
  
-$namecoin = new jsonRPCClient('http://user:pass@127.0.0.1:8336/');
-$domains = $namecoin->name_scan("", 100000000);
+$rpc = new jsonRPCClient($jsonConnect);
+$name_scan = $rpc->name_scan("", 100000000);
+#print_r($name_scan);
 
-$infos = $namecoin->getinfo();
-file_put_contents('./q/blocknumber.txt', $infos['blocks']);
+// no change in name_scan
+$backup = @file_get_contents($cacheDir.'name_scan');
+if($backup == md5(serialize($name_scan))) {
+	echo 'No change in name_scan';
+	exit;
+}
+file_put_contents2($cacheDir.'name_scan', md5(serialize($name_scan)));
+unset($backup);
 
-#print_r($domains);
-#$domains[] = array('name'=>'d/xn--t4c', 'value'=>'{"map": {"": {"ns": ["ns0.web-sweet-web.net", "ns1.web-sweet-web.net"]}}}');
-#$domains[] = array('name'=>'d/opennic', 'value'=>'{"map": {"": {"ns": ["ns0.web-sweet-web.net", "ns1.web-sweet-web.net"]}}}');
-#$domains[] = array('name'=>'d/testx', 'value'=>'{"map": {"": "78.47.86.43", "www": {"ns": ["200.200.219.3", "200.200.219.2"]}}}');
-#$domains[] = array('name'=>'d/testnic2', 'value'=>'{"map": {"": "78.47.86.43", "www": "200.200.219.3"}}');
+$backupDoms = @file_get_contents($cacheDir.'domains');
 
-// get domains to update
-echo '<pre>';
-$backup = unserialize(@file_get_contents('./cache/namescan_map'));
-#print_r($backup);
-foreach($domains as $id=>$dom) {
-	if(!preg_match('@^d/[\x00-\x7F]+$@', $dom['name'])) {
-		echo "BAD name: ".$dom['name'].'<br />';
-		unset($domains[$id]);
+// filter bad names and domains
+foreach($name_scan as $id=>$dom) {
+	// domain has a non ascii name
+	$d = new dom($dom['name'], $dom);
+	if(!$d->isNameValid()) {
+		if($showErrors) echo $d->errors().' : '.$d->name.'<br />';
 		continue;
 	}
+	// list of valid names
+	$names_list[] = $d->name;
 
-	/*$out = array();
-	exec("LANG=en_US.UTF-8 /usr/bin/idn --allow-unassigned --usestd3asciirules --profile=Nameprep --idna-to-unicode '".substr($dom['name'], 2)."'", $out);
-	if(count($out)) {
-		print_r($out);
-		echo '<br />';
-	} else {
-		print_r($dom);
-		echo "BAD: ".substr($dom['name'], 2).'<br />';
+	// domain has an invalid json value
+	if(!$d->isValueJson()) {
+		if($showErrors) echo $d->errors().' : '.$d->name.'<br />';
+		#if($showErrors) echo '<pre>'; print_r($d->json); echo '</pre>';
+		continue;
 	}
-	if(!count($out)) {
-		#unset($domains[$id]);
-		#continue;
-	}*/
-	
-	#$domains[$id]['name'] = $dom['name'] = 'd/'.strtolower($IDN->encode(substr($dom['name'], 2)));
-	$namescan_list[] = $dom['name'];
+	// list of valid domains
+	$domains_list[] = $d->name;
+	$domains[$d->name] = $d;
 
-	// patch json single quote
-	if(preg_match("@{'map':@", $dom['value'])) {
-		$domains[$id]['value'] = $dom['value'] = str_replace("'", '"', $dom['value']);
-	}
-	$value = json_decode($dom['value']);
-	if(isset($value->map)) {
-		if($backup[$id] != $dom) {
-			#echo $dom['name'].' - '.$dom['value'].'<br />';
-			$update[$dom['name']] = $dom;
+	unset($name_scan[$i]);
+}
+unset($name_scan);
+
+// no change in list of valid names 
+$backup = @file_get_contents($cacheDir.'names_list');
+if($backup == serialize($names_list)) {
+	echo 'No change in list of valid names';
+	exit;
+}
+file_put_contents2($cacheDir.'names_list', serialize($names_list));
+unset($names_list);
+
+// no change in list of valid domains
+$backup = @file_get_contents($cacheDir.'domains_list');
+if($backup == serialize($domains_list)) {
+	echo 'No change in list of valid domains';
+	exit;
+}
+file_put_contents2($cacheDir.'domains_list', serialize($domains_list));
+unset($domains_list);
+unset($backup);
+
+// no change in content of list of valid domains
+if($backupDoms == serialize($domains)) {
+	echo 'No change in content of list of valid domains';
+	exit;
+}
+file_put_contents2($cacheDir.'domains', serialize($domains));
+
+ksort($domains);
+$bitZones = array();
+$bitForwards = array();
+$backupDoms = unserialize($backupDoms);
+$oldBind = unserialize(@file_get_contents($cacheDir.'bind_domains_list'));
+foreach($domains as $name=>$dom) {
+	// domain has changed
+	#if($backupDoms[$name]->value['value'] != $dom->value['value']) {
+	if($dom->hasValueChanged($backupDoms[$name]->value['value'])) {
+		$dom->getBindZones();
+		if(count($dom->bindZones)) {
+			$newBind['zones'][$name] = (array)$dom->bindZones;
+			$oldBind['zoneslist'][$name] = array_keys((array)$dom->bindZones);
+		} else {
+			if(isset($oldBind['zoneslist'][$name])) { unset($oldBind['zoneslist'][$name]); }
+		}
+		if(count($dom->bindForwards)) {
+			$newBind['forwards'][$name] = (array)$dom->bindForwards;
+			$oldBind['forwards'][$name] = (array)$dom->bindForwards;
+		} else {
+			if(isset($oldBind['forward'][$name])) { unset($oldBind['forward'][$name]); }
 		}
 	} else {
-		unset($domains[$id]);
+		unset($domains[$name]);
+		unset($backupDoms[$name]);
 	}
+
 }
-if($backup != $domains) {
-	file_put_contents('./cache/namescan_map', serialize($domains));
-	file_put_contents('./cache/namescan_list', serialize($namescan_list));
-	file_put_contents('./q/domainnumber.txt', count($namescan_list));
-	file_put_contents('./q/domainlist.txt', implode("\n", $namescan_list));
-} else {
-	#exit;
-}
-#print_r($update);
+unset($domains);
+unset($backupDoms);
+file_put_contents2($cacheDir.'bind_domains_list', serialize($oldBind));
 
-// format data
-$formatted = array();
-$ipMask = '@[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}@';
-$ns = array();
-$hosts = array();
-foreach($domains as $dom) {
-	if($dom['expires_in'] > 0) {
-		#echo $dom['name'].'<br />';
-		$value = json_decode($dom['value']);
-		if(isset($value->map))
-		foreach($value->map as $id=>$value) {
-			if($value) {
-				// ns delegation
-				if($value->ns) {
-					#print_r($value);
-					/*if(strpos($value->ns[0], ',') !== FALSE && count($value->ns) == 1) {
-						$value->ns[0] = str_replace(' ', '', $value->ns[0]);
-						$value->ns = explode(',', $value->ns[0]);
-					}*/
-					foreach($value->ns as $i=>$n) {
-						if(!preg_match($ipMask, $n)) {
-							#print_r(gethostbyname($n));
-							$value->ns[$i] = gethostbyname($n);
-						}
-						if(!preg_match($ipMask, $value->ns[$i])) {
-							unset($value->ns[$i]);
-						}
-					}
-					if(count($value->ns)) {
-						$formatted[$dom['name']]['ns'][$id] = $value->ns;
-						$ns[($id!="_empty_"?$id.".":"").substr($dom['name'], 2).".bit"] = $value->ns;
-					}
-				// single ip
-				} elseif (!isset($value->ns) && !is_object($value) && preg_match($ipMask, $value)) {
-					#print_r($value);
-					$formatted[$dom['name']]['host'][$id] = $value;
-					$hosts[] = $value."	".($id!="_empty_"?$id.".":"").substr($dom['name'], 2).".bit";
-				}
-				// unknow
-				else {
-					#echo 'Unknown value type: '; print_r($value); echo "\n";
-				}
-			}
-		}
-	}
-}
+#echo '<pre>Zones : '; print_r($newBind['zones']); echo '</pre>';
+#echo '<pre>Zones : '; print_r($oldBind['zoneslist']); echo '</pre>';
+#echo '<pre>Forwards : '; print_r($newBind['forwards']); echo '</pre>';
 
-
-#echo '<pre>'; print_r($formatted); echo '<br />';
-/*print_r($hosts);
-echo '<br />';
-print_r($ns);
-echo '<br />';*/
-
-if(@file_get_contents('./cache/bit-forward') != serialize($ns)) {
-	file_put_contents('./cache/bit-forward', serialize($ns));
-
+// generate list of forwarded domains
+if(count($newBind['forwards'])) {
 	$bitForward = '';
-	foreach($formatted as $domain=>$val) {
-		if(isset($val['ns'])) {
-			$ns = $val['ns'];
-			preg_match('@^([^/])+/(.+)$@', $domain, $parts);
-			$domain = $parts[2];
-			$domain .= '.bit';
-			foreach($ns as $id=>$ns) {
-				$sub = ($id == '_empty_' ? '' : $id.'.');
-				$bitForward .= 'zone "'.$sub.$domain.'" { type forward; forwarders { '.implode("; ", $ns).'; }; };'."\n";
-				unset($formatted[$domain]['host'][$id]);
-			}
+	foreach($oldBind['forwards'] as $name) {
+		foreach($name as $domain=>$ns) {
+			$bitForward .= 'zone "'.$domain.'" { type forward; forwarders { '.implode("; ", $ns).'; }; };'."\n";
 		}
 	}
-	#echo $bitForward;
-	file_put_contents('/etc/bind/namecoin/bit-forward.conf', $bitForward);
+	#echo '<pre>Forwards :'."\n".$bitForward.'</pre>';
+	file_put_contents2($bindZonesList.'bit-forward.conf', $bitForward);
 }
 
-if(@file_get_contents('./cache/bit-domains') != serialize($hosts)) {
-	file_put_contents('./cache/bit-domains', serialize($hosts));
-
-	$bitDomains = '';
-	foreach($formatted as $domain=>$val) {
-		if(isset($val['host'])) {
-			$hosts = $val['host'];
-			preg_match('@^([^/])+/(.+)$@', $domain, $parts);
-			$domain = $parts[2];
-			$domain .= '.bit';
-			$bitDomains .= 'zone "'.$domain.'" { type master; file "/etc/bind/namecoin/'.$domain.'"; allow-query { any; }; };'."\n";
-
-			$template = file_get_contents('/etc/bind/namecoin/bit-template.conf');
-			$template = str_replace('@@DOMAINE@@', $domain, $template);
-			#$template = str_replace('%%serial%%', '1', $template);
-			$template = str_replace('%%serial%%', date('YmdHi'), $template);
-			$template = str_replace('%%fqdn%%', 'dot-bit.org', $template);
-			$template = str_replace('%%ns1%%', $ip, $template);
-			$template = str_replace('%%ns2%%', $ip, $template);
-			$template = str_replace('%%mx%%', $ip, $template);
-			$records = '';
-			foreach($hosts as $sub=>$ip) {
-				if($sub == '_empty_') {
-					$records .= str_pad('@', 8).'IN  A   '.$ip."\n";
-					$records .= str_pad('*', 8).'IN  A   '.$ip."\n";
-				} else {
-					$records .= str_pad($sub, 8).'IN  A   '.$ip."\n";
-				}
-			}
-			$template = str_replace('%%records%%', $records, $template);
-			#echo $template;
-			if(@file_get_contents('/etc/bind/namecoin/'.$domain) != $template) {
-				#echo 'update zone : '.$domain.'<br />';
-				file_put_contents('/etc/bind/namecoin/'.$domain, $template);
-			}
+// generate list of master domains
+if(count($newBind['zones'])) {
+	$bitMaster = '';
+	foreach($oldBind['zoneslist'] as $name) {
+		foreach($name as $domain=>$zone) {
+			$bitMaster .= 'zone "'.$zone.'" { type master; file "'.$bindZonesFiles.$zone.'"; allow-query { any; }; };'."\n";
 		}
 	}
-	#echo $bitDomains;
-	if(@file_get_contents('/etc/bind/namecoin/bit-domains.conf') != $bitDomains) {
-		file_put_contents('/etc/bind/namecoin/bit-domains.conf', $bitDomains);
+	#echo '<pre>Masters :'."\n".$bitMaster.'</pre>';
+	file_put_contents2($bindZonesList.'bit-master.conf', $bitMaster);
+}
+
+// generate new zones
+foreach((array)$newBind['zones'] as $name) {
+	foreach($name as $domain=>$zone) {
+		$template = file_get_contents(dirname(__FILE__).'/zone-template.conf');
+		$template = str_replace('@@DOMAINE@@', $domain, $template);
+		#$template = str_replace('%%serial%%', '1', $template);
+		$template = str_replace('%%authns%%', $authoritativeNS[0], $template);
+		$template = str_replace('%%email%%', isset($zone['email']) ? str_replace('@', '.', $zone['email']) : 'hostmaster.'.$domain, $template);
+		unset($zone['email']);
+		$template = str_replace('%%serial%%', date('YmdHi'), $template);
+		if($authoritativeNS[0]) {	$template .= "         IN  NS       ".$authoritativeNS[0].".\n";	}
+		if($authoritativeNS[1]) {	$template .= "         IN  NS       ".$authoritativeNS[1].".\n";	}
+		foreach($zone as $record) {
+			$template .= $record."\n";
+		}
+		#$template = str_replace('%%mx%%', $ip, $template);
+		file_put_contents2($bindZonesFiles.$domain, $template);
+		#echo '<pre>Zone '.$domain.' :'."\n".$template.'</pre>';
 	}
+}
+
+#echo '<br />'; echo memory_get_usage(); echo '<br />'; echo memory_get_usage(true);
+
+function file_put_contents2($file, $data) {
+	global $doFileWrites;
+	if($doFileWrites) {
+		file_put_contents($file, $data);
+	}
+	echo "Write : $file<br />";
 }
 
 ?>

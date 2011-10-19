@@ -1,0 +1,26 @@
+<?php
+
+# Connection to a running namecoin node
+$jsonConnect = 'http://user:pass@127.0.0.1:8336/';
+
+# DNS server names which are authoritative for .bit zones (the DNS servers you are building/configuring)
+$authoritativeNS[] = 'my-dotbit-server.org';
+#$authoritativeNS[] = '';
+
+# Cache data to avoid generating zones each time
+$cacheDir = dirname(__FILE__).'/cache/';
+
+# Bind configuration files : bit-forward.conf & bit-master.conf
+$bindZonesList = '/etc/bind/';
+
+# Bind zones for .bit domains
+$bindZonesFiles= '/etc/bind/zones/';
+
+# Namecoin stat folder, leave empty to disable : currently not used
+#$statDir = dirname(__FILE__).'/stats/';
+
+# Debug
+$doFileWrites = true;
+#$showErrors = true;
+
+?>
