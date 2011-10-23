@@ -12,6 +12,12 @@ $name_scan = $rpc->name_scan("", 100000000);
 #$name_scan[] = array('name'=>'d/test','value'=>"{\"info\":{\"registrar\":\"http://register.dot-bit.org\"},\"map\": {\"\": \"46.137.88.107\", \"www\": \"46.137.88.107\"} }");
 #$name_scan[] = array('name'=>'d/test','value'=>"{\"info\":{\"registrar\":\"http://register.dot-bit.org\"},\"dns\":[\"ns0.web-sweet-web.net\",\"ns1.web-sweet-web.net\"],\"map\":{\"\":{\"ns\":[\"ns0.web-sweet-web.net\",\"ns1.web-sweet-web.net\"]}}} ");
 
+// Exit if bad data
+if(!count($name_scan) && !isset($name_scan[0]['name'])) {
+	echo 'No data';
+	exit;
+}
+
 // no change in name_scan
 $backup = @file_get_contents($cacheDir.'name_scan');
 if($backup == md5(serialize($name_scan))) {
