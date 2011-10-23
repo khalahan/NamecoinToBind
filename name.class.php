@@ -83,12 +83,17 @@ class dom extends name {
 				# "import": [ ["d/example", "www"] ]
 				break;
 			case 'ns':
+			case 'dns':
 				unset($data->map);
 				unset($data->ip);
 				unset($data->ip6);
 				unset($data->email);
 				unset($data->translate);
 				unset($data->alias);
+				if(isset($data->dns)) {
+					$data->ns = $data->dns;
+					unset($data->dns);
+				}
 				break;
 			case 'translate':	// delete all subdomains
 				unset($data->map);
@@ -103,8 +108,8 @@ class dom extends name {
 				}
 				break;
 			case 0:				// FIX to allow new syntax prior to old syntax
-				if(isset($data->ns) || isset($data->dns)) {
-					if($data->map && $data->map->_empty_) unset($data->map->_empty_->ns);
+				if(isset($data->ns)) {
+					if($data->map && $data->map->_empty_) { unset($data->map->_empty_->ns); }
 				} elseif(isset($data->ip) && !isset($data->_empty_->ns)) {
 					unset($data->map->_empty_);
 				}

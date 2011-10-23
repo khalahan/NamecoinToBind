@@ -9,6 +9,8 @@ require './name.class.php';
 $rpc = new jsonRPCClient($jsonConnect);
 $name_scan = $rpc->name_scan("", 100000000);
 #print_r($name_scan);
+#$name_scan[] = array('name'=>'d/test','value'=>"{\"info\":{\"registrar\":\"http://register.dot-bit.org\"},\"map\": {\"\": \"46.137.88.107\", \"www\": \"46.137.88.107\"} }");
+#$name_scan[] = array('name'=>'d/test','value'=>"{\"info\":{\"registrar\":\"http://register.dot-bit.org\"},\"dns\":[\"ns0.web-sweet-web.net\",\"ns1.web-sweet-web.net\"],\"map\":{\"\":{\"ns\":[\"ns0.web-sweet-web.net\",\"ns1.web-sweet-web.net\"]}}} ");
 
 // no change in name_scan
 $backup = @file_get_contents($cacheDir.'name_scan');
@@ -86,13 +88,13 @@ foreach($domains as $name=>$dom) {
 			$newBind['zones'][$name] = (array)$dom->bindZones;
 			$oldBind['zoneslist'][$name] = array_keys((array)$dom->bindZones);
 		} else {
-			if(isset($oldBind['zoneslist'][$name])) { unset($oldBind['zoneslist'][$name]); }
+			if(isset($oldBind['zoneslist'][$name])) { unset($oldBind['zoneslist'][$name]); $todoZones = true; }
 		}
 		if(count($dom->bindForwards)) {
 			$newBind['forwards'][$name] = (array)$dom->bindForwards;
 			$oldBind['forwards'][$name] = (array)$dom->bindForwards;
 		} else {
-			if(isset($oldBind['forward'][$name])) { unset($oldBind['forward'][$name]); }
+			if(isset($oldBind['forward'][$name])) { unset($oldBind['forward'][$name]); $todoForwards = true; }
 		}
 	} else {
 		unset($domains[$name]);
@@ -109,7 +111,7 @@ file_put_contents2($cacheDir.'bind_domains_list', serialize($oldBind));
 #echo '<pre>Forwards : '; print_r($newBind['forwards']); echo '</pre>';
 
 // generate list of forwarded domains
-if(count($newBind['forwards'])) {
+if($todoForwards || count($newBind['forwards'])) {
 	$bitForward = '';
 	foreach($oldBind['forwards'] as $name) {
 		foreach($name as $domain=>$ns) {
@@ -121,7 +123,7 @@ if(count($newBind['forwards'])) {
 }
 
 // generate list of master domains
-if(count($newBind['zones'])) {
+if($todoZones || count($newBind['zones'])) {
 	$bitMaster = '';
 	foreach($oldBind['zoneslist'] as $name) {
 		foreach($name as $domain=>$zone) {
