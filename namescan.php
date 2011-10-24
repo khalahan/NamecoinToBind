@@ -26,6 +26,14 @@ if($backup == md5(serialize($name_scan))) {
 }
 file_put_contents2($cacheDir.'name_scan', md5(serialize($name_scan)));
 unset($backup);
+if($statDir) { file_put_contents2($statDir.'name_count.txt', count($name_scan)); }
+if($statDir) {
+	$tmp = array();
+	foreach($name_scan as $id=>$dom) { $tmp[] = $dom['name']; }
+	sort($tmp);
+	file_put_contents2($statDir.'name_list.txt', implode("\n",$tmp));
+	unset($tmp);
+}
 
 $backupDoms = @file_get_contents($cacheDir.'domains');
 
@@ -56,20 +64,22 @@ unset($name_scan);
 
 // no change in list of valid names 
 $backup = @file_get_contents($cacheDir.'names_list');
-if($backup == serialize($names_list)) {
+if($backup == md5(serialize($names_list))) {
 	echo 'No change in list of valid names';
 	exit;
 }
-file_put_contents2($cacheDir.'names_list', serialize($names_list));
+file_put_contents2($cacheDir.'names_list', md5(serialize($names_list)));
+if($statDir) { file_put_contents2($statDir.'domain_count.txt', count($names_list)); }
+if($statDir) { file_put_contents2($statDir.'domain_list.txt', implode("\n",$names_list)); }
 unset($names_list);
 
 // no change in list of valid domains
 $backup = @file_get_contents($cacheDir.'domains_list');
-if($backup == serialize($domains_list)) {
+if($backup == md5(serialize($domains_list))) {
 	echo 'No change in list of valid domains';
 	exit;
 }
-file_put_contents2($cacheDir.'domains_list', serialize($domains_list));
+file_put_contents2($cacheDir.'domains_list', md5(serialize($domains_list)));
 unset($domains_list);
 unset($backup);
 
