@@ -9,8 +9,8 @@ require './name.class.php';
 $rpc = new jsonRPCClient($jsonConnect);
 $name_scan = $rpc->name_scan("", 100000000);
 #print_r($name_scan);
-#$name_scan[] = array('name'=>'d/test','value'=>"{\"info\":{\"registrar\":\"http://register.dot-bit.org\"},\"map\": {\"\": \"46.137.88.107\", \"www\": \"46.137.88.107\"} }");
-#$name_scan[] = array('name'=>'d/test','value'=>"{\"info\":{\"registrar\":\"http://register.dot-bit.org\"},\"dns\":[\"ns0.web-sweet-web.net\",\"ns1.web-sweet-web.net\"],\"map\":{\"\":{\"ns\":[\"ns0.web-sweet-web.net\",\"ns1.web-sweet-web.net\"]}}} ");
+#$name_scan[] = array('name'=>'d/test5','value'=>"{\"info\":{\"registrar\":\"http://register.dot-bit.org\"},\"map\": {\"\": \"46.137.88.107\", \"www\": \"46.137.88.107\"} }");
+#$name_scan[] = array('name'=>'d/test5','value'=>"{\"info\":{\"registrar\":\"http://register.dot-bit.org\"},\"dns\":[\"ns0.web-sweet-web.net\",\"ns1.web-sweet-web.net\"],\"map\":{\"\":{\"ns\":[\"ns0.web-sweet-web.net\",\"ns1.web-sweet-web.net\"]}}} ");
 
 // Exit if bad data
 if(!count($name_scan) && !isset($name_scan[0]['name'])) {
@@ -35,8 +35,6 @@ if($statDir) {
 	unset($tmp);
 }
 
-$backupDoms = @file_get_contents($cacheDir.'domains');
-
 // filter bad names and domains
 foreach($name_scan as $id=>$dom) {
 	// domain has a non ascii name
@@ -55,81 +53,58 @@ foreach($name_scan as $id=>$dom) {
 		continue;
 	}
 	// list of valid domains
-	$domains_list[] = $d->name;
 	$domains[$d->name] = $d;
 
 	unset($name_scan[$i]);
 }
 unset($name_scan);
 
-// no change in list of valid names 
-$backup = @file_get_contents($cacheDir.'names_list');
-if($backup == md5(serialize($names_list))) {
-	echo 'No change in list of valid names';
-	exit;
-}
-file_put_contents2($cacheDir.'names_list', md5(serialize($names_list)));
 if($statDir) { file_put_contents2($statDir.'domain_count.txt', count($names_list)); }
 if($statDir) { file_put_contents2($statDir.'domain_list.txt', implode("\n",$names_list)); }
 unset($names_list);
 
-// no change in list of valid domains
-$backup = @file_get_contents($cacheDir.'domains_list');
-if($backup == md5(serialize($domains_list))) {
-	echo 'No change in list of valid domains';
+// no change in content of valid domains
+$backup = @file_get_contents($cacheDir.'domains_md5');
+if($backup == md5(serialize($domains))) {
+	echo 'No change in content of valid domains';
 	exit;
 }
-file_put_contents2($cacheDir.'domains_list', md5(serialize($domains_list)));
-unset($domains_list);
-unset($backup);
-
-// no change in content of list of valid domains
-if($backupDoms == serialize($domains)) {
-	echo 'No change in content of list of valid domains';
-	exit;
-}
-file_put_contents2($cacheDir.'domains', serialize($domains));
+file_put_contents2($cacheDir.'domains_md5', md5(serialize($domains)));
 
 ksort($domains);
-$bitZones = array();
-$bitForwards = array();
-$backupDoms = unserialize($backupDoms);
-$oldBind = unserialize(@file_get_contents($cacheDir.'bind_domains_list'));
+$bind = unserialize(@file_get_contents($cacheDir.'bind'));
+$backupDoms = unserialize(@file_get_contents($cacheDir.'domains'));
 foreach($domains as $name=>$dom) {
 	// domain has changed
-	#if($backupDoms[$name]->value['value'] != $dom->value['value']) {
 	if($dom->hasValueChanged($backupDoms[$name]->value['value'])) {
+		unset($bind['zonesnew'][$name]);
+		unset($bind['zoneslist'][$name]);
+		unset($bind['forwards'][$name]);
 		$dom->getBindZones();
 		if(count($dom->bindZones)) {
-			$newBind['zones'][$name] = (array)$dom->bindZones;
-			$oldBind['zoneslist'][$name] = array_keys((array)$dom->bindZones);
-		} else {
-			if(isset($oldBind['zoneslist'][$name])) { unset($oldBind['zoneslist'][$name]); $todoZones = true; }
+			$bind['zonesnew'][$name] = (array)$dom->bindZones;
+			$bind['zoneslist'][$name] = array_keys((array)$dom->bindZones);
 		}
 		if(count($dom->bindForwards)) {
-			$newBind['forwards'][$name] = (array)$dom->bindForwards;
-			$oldBind['forwards'][$name] = (array)$dom->bindForwards;
-		} else {
-			if(isset($oldBind['forward'][$name])) { unset($oldBind['forward'][$name]); $todoForwards = true; }
+			$bind['forwards'][$name] = (array)$dom->bindForwards;
 		}
-	} else {
-		unset($domains[$name]);
-		unset($backupDoms[$name]);
 	}
 
 }
+file_put_contents2($cacheDir.'domains', serialize($domains));
 unset($domains);
 unset($backupDoms);
-file_put_contents2($cacheDir.'bind_domains_list', serialize($oldBind));
 
-#echo '<pre>Zones : '; print_r($newBind['zones']); echo '</pre>';
-#echo '<pre>Zones : '; print_r($oldBind['zoneslist']); echo '</pre>';
-#echo '<pre>Forwards : '; print_r($newBind['forwards']); echo '</pre>';
+#echo '<pre>Zones : '; print_r($bind['zonesnew']); echo '</pre>';
+#echo '<pre>Zones : '; print_r($bind['zoneslist']); echo '</pre>';
+#echo '<pre>Forwards : '; print_r($bind['forwards']); echo '</pre>';
 
 // generate list of forwarded domains
-if($todoForwards || count($newBind['forwards'])) {
+$backup = @file_get_contents($cacheDir.'forward_list');
+if($backup != md5(serialize($bind['forwards']))) {
+	file_put_contents2($cacheDir.'forward_list', md5(serialize($bind['forwards'])));
 	$bitForward = '';
-	foreach($oldBind['forwards'] as $name) {
+	foreach($bind['forwards'] as $name) {
 		foreach($name as $domain=>$ns) {
 			$bitForward .= 'zone "'.$domain.'" { type forward; forwarders { '.implode("; ", $ns).'; }; };'."\n";
 		}
@@ -139,9 +114,11 @@ if($todoForwards || count($newBind['forwards'])) {
 }
 
 // generate list of master domains
-if($todoZones || count($newBind['zones'])) {
+$backup = @file_get_contents($cacheDir.'zone_list');
+if($backup != md5(serialize($bind['zoneslist']))) {
+	file_put_contents2($cacheDir.'zone_list', md5(serialize($bind['zoneslist'])));
 	$bitMaster = '';
-	foreach($oldBind['zoneslist'] as $name) {
+	foreach($bind['zoneslist'] as $name) {
 		foreach($name as $domain=>$zone) {
 			$bitMaster .= 'zone "'.$zone.'" { type master; file "'.$bindZonesFiles.$zone.'"; allow-query { any; }; };'."\n";
 		}
@@ -151,7 +128,7 @@ if($todoZones || count($newBind['zones'])) {
 }
 
 // generate new zones
-foreach((array)$newBind['zones'] as $name) {
+foreach((array)$bind['zonesnew'] as $name) {
 	foreach($name as $domain=>$zone) {
 		$template = file_get_contents(dirname(__FILE__).'/zone-template.conf');
 		$template = str_replace('@@DOMAINE@@', $domain, $template);
@@ -170,8 +147,8 @@ foreach((array)$newBind['zones'] as $name) {
 		#echo '<pre>Zone '.$domain.' :'."\n".$template.'</pre>';
 	}
 }
-
-#echo '<br />'; echo memory_get_usage(); echo '<br />'; echo memory_get_usage(true);
+unset($bind['zonesnew']);
+file_put_contents2($cacheDir.'bind', serialize($bind));
 
 function file_put_contents2($file, $data) {
 	global $doFileWrites;
@@ -180,5 +157,7 @@ function file_put_contents2($file, $data) {
 	}
 	echo "Write : $file<br />";
 }
+
+#echo '<br />'; echo memory_get_usage(); echo '<br />'; echo memory_get_usage(true);
 
 ?>
