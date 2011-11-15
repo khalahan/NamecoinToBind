@@ -11,6 +11,7 @@ $name_scan = $rpc->name_scan("", 100000000);
 #print_r($name_scan);
 #$name_scan[] = array('name'=>'d/test5','value'=>"{\"info\":{\"registrar\":\"http://register.dot-bit.org\"},\"map\": {\"\": \"46.137.88.107\", \"www\": \"46.137.88.107\"} }");
 #$name_scan[] = array('name'=>'d/test5','value'=>"{\"info\":{\"registrar\":\"http://register.dot-bit.org\"},\"dns\":[\"ns0.web-sweet-web.net\",\"ns1.web-sweet-web.net\"],\"map\":{\"\":{\"ns\":[\"ns0.web-sweet-web.net\",\"ns1.web-sweet-web.net\"]}}} ");
+#$name_scan[] = array('name'=>'d/test5','value'=>'{"ip":"10.0.0.1","map":{"":"10.0.0.1"}}');
 
 // Exit if bad data
 if(!count($name_scan) && !isset($name_scan[0]['name'])) {

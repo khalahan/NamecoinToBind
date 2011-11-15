@@ -40,8 +40,8 @@ class dom extends name {
 			$this->errors[] = 'Not in the domain namespace';
 			return false;
 		}
-		if(!preg_match('@^[^/]+/[\x00-\x7F]+$@', $this->name)) {
-			$this->errors[] = 'Not an ascii name';
+		if(!preg_match('@^[^/]+/[a-z0-9_-]+$@', $this->name)) {
+			$this->errors[] = 'Not an ascii idn name';
 			return false;
 		}
 		return true;
