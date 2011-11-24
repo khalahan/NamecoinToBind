@@ -252,6 +252,9 @@ class dom extends name {
 		#echo '<pre>'; print_r($this->flatZones); echo '</pre>';
 
 		$this->convertFlatToBind();
+		foreach($this->bindForwards as $forward=>$val) {
+			unset($this->bindZones[$forward]);
+		}
 		#echo '<pre>Zone : '; print_r($this->bindZones); echo '</pre>';
 		#echo '<pre>Forward : '; print_r($this->bindForwards); echo '</pre>';
 
