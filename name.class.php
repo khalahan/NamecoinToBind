@@ -36,7 +36,7 @@ class dom extends name {
 	}
 
 	public function isNameValid() {
-		if(!preg_match('@^[ds]/@', $this->name)) {
+		if(!preg_match('@^[d]/@', $this->name)) {
 			$this->errors[] = 'Not in the domain namespace';
 			return false;
 		}
