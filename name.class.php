@@ -166,9 +166,19 @@ class dom extends name {
 					$this->flatZones[$domain][$record][$recordType][0] = (string)$recordValue;
 				}
 				break;
+			case 'ns':
+				foreach((array)$recordValue as $i=>$n) {
+					// exlude local ip & ip6
+					if(filter_var($n, FILTER_VALIDATE_IP)) {
+						#if(!filter_var($n, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+						if(preg_match($mask['private_ip'], $n) || preg_match($mask['private_ip6'], $n))
+							continue;
+					}
+					$this->flatZones[$domain][$record][$recordType][] = $n;
+				}
+				break;
 			case 'ip':
 			case 'ip6':
-			case 'ns':
 				foreach((array)$recordValue as $i=>$n) {
 					// resolve host
 					if(!preg_match($mask[$recordType], $n)) {
@@ -181,6 +191,8 @@ class dom extends name {
 
 						// if ns : exlude local ip & ip6
 						if($recordType == 'ns' && (preg_match($mask['private_ip'], $n) || preg_match($mask['private_ip6'], $n)))
+							continue;
+						if($n == '10.0.0.1')
 							continue;
 
 						$this->flatZones[$domain][$record][$recordType][] = $n;

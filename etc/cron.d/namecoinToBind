@@ -1,0 +1,5 @@
+# /etc/cron.d/namecoinToBind: crontab for namecoinToBin
+
+# Check for new names each 2 minutes
+*/2 *		* * *	www-data	/usr/bin/php-cgi /home/NamecoinToBind/namescan.php > /dev/null
+
