@@ -105,10 +105,11 @@ unset($backupDoms);
 #echo '<pre>Forwards : '; print_r($bind['forwards']); echo '</pre>';
 
 
-// generate list of forwarded domains
-$backup = @file_get_contents($cacheDir.'forward_list');
+/*$backup = @file_get_contents($cacheDir.'forward_list');
 if($backup != md5(serialize($bind['forwards']))) {
 	file_put_contents2($cacheDir.'forward_list', md5(serialize($bind['forwards'])));
+}*/
+// generate list of forwarded domains
 	#$bitForward = '';
 	foreach($bind['forwards'] as $name) {
 		foreach($name as $domain=>$ns) {
@@ -131,13 +132,13 @@ if($backup != md5(serialize($bind['forwards']))) {
 	$bitRoot .= "\n";
 	#echo '<pre>Forwards :'."\n".$bitForward.'</pre>';
 	#file_put_contents2($bindZonesList.'bit-forward.conf', $bitForward);
-}
 
 
-// generate list of master domains
 $backup = @file_get_contents($cacheDir.'zone_list');
 if($backup != md5(serialize($bind['zoneslist']))) {
 	file_put_contents2($cacheDir.'zone_list', md5(serialize($bind['zoneslist'])));
+}
+// generate list of master domains
 	$bitMaster = '';
 	foreach($bind['zoneslist'] as $name) {
 		foreach($name as $domain=>$zone) {
@@ -152,6 +153,7 @@ if($backup != md5(serialize($bind['zoneslist']))) {
 	}
 	#echo '<pre>Masters :'."\n".$bitMaster.'</pre>';
 	file_put_contents2($bindZonesList.'zones-master.conf', $bitMaster);
+
 
 	// generate root zone
 	$template = file_get_contents(dirname(__FILE__).'/zone-template.conf');
@@ -168,7 +170,6 @@ if($backup != md5(serialize($bind['zoneslist']))) {
 	file_put_contents2($bindZonesList.'root-bit.zone', $template);
 	#echo '<pre>bitRoot :<br />'; print_r($bitRoot); echo '</pre>';
 	#echo '<pre>bitRoot :<br />'; print_r($template); echo '</pre>';
-}
 
 // generate new zones
 foreach((array)$bind['zonesnew'] as $name) {
