@@ -115,7 +115,7 @@ if($backup != md5(serialize($bind['forwards']))) {
 		foreach($name as $domain=>$ns) {
 			#$bitForward .= 'zone "'.$domain.'" { type forward; forwarders { '.implode("; ", $ns).'; }; };'."\n";
 			foreach($ns as $n) {
-				$n = preg_replace('@[^a-zA-Z0-9_.-]@', '', $n);
+				$n = preg_replace('@[^a-zA-Z0-9_.-:]@', '', $n);
 				if(filter_var($n, FILTER_VALIDATE_IP)) {
 					$bitRoot .= str_replace('.bit', '', $domain)."	IN NS	".str_replace('.bit', '', $domain).".ns\n";
 					if(filter_var($n, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
