@@ -117,11 +117,11 @@ if($backup != md5(serialize($bind['forwards']))) {
 			foreach($ns as $n) {
 				$n = preg_replace('@[^a-zA-Z0-9_.-:]@', '', $n);
 				if(filter_var($n, FILTER_VALIDATE_IP)) {
-					$bitRoot .= str_replace('.bit', '', $domain)."	IN NS	".str_replace('.bit', '', $domain).".ns\n";
+					$bitRoot .= str_replace('.bit', '', $domain)."	IN NS	ns.".str_replace('.bit', '', $domain)."\n";
 					if(filter_var($n, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-						$bitRoot .= str_replace('.bit', '', $domain).".ns	IN A	".$n."\n";
+						$bitRoot .= "ns.".str_replace('.bit', '', $domain)."	IN A	".$n."\n";
 					} elseif(filter_var($n, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-						$bitRoot .= str_replace('.bit', '', $domain).".ns	IN AAAA	".$n."\n";
+						$bitRoot .= "ns.".str_replace('.bit', '', $domain)."	IN AAAA	".$n."\n";
 					}
 				} else {
 					$bitRoot .= str_replace('.bit', '', $domain)."	IN NS	".$n.(substr($n, -1) == '.' ? '' : '.')."\n";
