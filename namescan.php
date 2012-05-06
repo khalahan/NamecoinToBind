@@ -163,7 +163,12 @@ if($backup != md5(serialize($bind['zoneslist']))) {
 	$template = str_replace('%%email%%', 'hostmaster.'.$authoritativeNS[0][0], $template);
 	$template = str_replace('%%serial%%', date('YmdHi'), $template);
 	$template .= "		IN NS	".$authoritativeNS[0][0].".\n";
-	$template .= $authoritativeNS[0][0].".	IN A	".$authoritativeNS[0][1]."\n";
+	if (filter_var($authoritativeNS[0][1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+                $template .= $authoritativeNS[0][0].".  IN AAAA ".$authoritativeNS[0][1]."\n";
+        }
+        elseif (filter_var($authoritativeNS[0][1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                $template .= $authoritativeNS[0][0].".  IN A    ".$authoritativeNS[0][1]."\n";
+        }
 	#$template .= "		IN NS	gluens\n";
 	#$template .= "gluens	IN A	".$authoritativeNS[0][1]."\n";
 	$template .= "\n".$bitRoot;
