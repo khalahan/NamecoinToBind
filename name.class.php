@@ -29,7 +29,7 @@ class name {
 class dom extends name {
 	public function __construct($name = '', $value = '') {
 		// patch json single quote
-		if(preg_match("@{'map':@", $value['value'])) {
+		if(isset($value['value']) && preg_match("@{'map':@", $value['value'])) {
 			$value['value'] = str_replace("'", '"', $value['value']);
 		}
 		parent::__construct($name, $value);
@@ -103,8 +103,10 @@ class dom extends name {
 				unset($data->ip6);
 				break;
 			case 'map':
-				foreach((array)$data->map as $subsub=>$subvalue) {
-					$this->cleanBadRecords($data->map->$subsub);
+				if(isset($data->map)) {
+					foreach((array)$data->map as $subsub=>$subvalue) {
+						$this->cleanBadRecords($data->map->$subsub);
+					}
 				}
 				break;
 			case 0:				// FIX to allow new syntax prior to old syntax
@@ -260,7 +262,7 @@ class dom extends name {
 		if(is_object($this->json)) {
 			// expired zone
 			#if($this->value['is_expired'] == 1 || $this->value['expires_in'] < 1)
-			if($this->value['is_expired'] == 1)
+			if(isset($this->value['is_expired']) && $this->value['is_expired'] == 1)
 			{
 				return;
 			}
@@ -274,6 +276,7 @@ class dom extends name {
 		#echo '<pre>'; print_r($this->flatZones); echo '</pre>';
 
 		$this->convertFlatToBind();
+		if(!isset($this->bindForwards)) return;
 		foreach((array)$this->bindForwards as $forward=>$val) {
 			unset($this->bindZones[$forward]);
 		}
