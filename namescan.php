@@ -19,15 +19,15 @@ if(!count($name_scan) && !isset($name_scan[0]['name'])) {
 	echo 'No data';
 	exit;
 }
+if($showDebug) { echo '<br />0: '; echo number_format(memory_get_usage(), 2, '.', "'"); echo ' - '; echo number_format(memory_get_usage(true), 2, '.', "'"); echo '<br />'; }
 
 // no change in name_scan
-$backup = @file_get_contents($cacheDir.'name_scan');
-if($backup == md5(serialize($name_scan))) {
+if(!cache_changed($cacheDir.'name_scan', $name_scan, 'md5')) {
 	echo 'No change in name_scan';
 	exit;
 }
-file_put_contents2($cacheDir.'name_scan', md5(serialize($name_scan)));
-unset($backup);
+if($showDebug) { echo '<br />1: '; echo number_format(memory_get_usage(), 2, '.', "'"); echo ' - '; echo number_format(memory_get_usage(true), 2, '.', "'"); echo '<br />'; }
+
 if($statDir) { file_put_contents2($statDir.'name_count.txt', count($name_scan)); }
 if($statDir) {
 	$tmp = array();
@@ -36,6 +36,7 @@ if($statDir) {
 	file_put_contents2($statDir.'name_list.txt', implode("\n",$tmp));
 	unset($tmp);
 }
+if($showDebug) { echo '<br />2: '; echo number_format(memory_get_usage(), 2, '.', "'"); echo ' - '; echo number_format(memory_get_usage(true), 2, '.', "'"); echo '<br />'; }
 
 // filter bad names and domains
 foreach($name_scan as $id=>$dom) {
@@ -60,22 +61,24 @@ foreach($name_scan as $id=>$dom) {
 	unset($name_scan[$i]);
 }
 unset($name_scan);
+if($showDebug) { echo '<br />3: '; echo number_format(memory_get_usage(), 2, '.', "'"); echo ' - '; echo number_format(memory_get_usage(true), 2, '.', "'"); echo '<br />'; }
 
 if($statDir) { file_put_contents2($statDir.'domain_count.txt', count($names_list)); }
 if($statDir) { file_put_contents2($statDir.'domain_list.txt', implode("\n",$names_list)); }
 unset($names_list);
 
 // no change in content of valid domains
-$backup = @file_get_contents($cacheDir.'domains_md5');
-if($backup == md5(serialize($domains))) {
+if(!cache_changed($cacheDir.'domains', $domains, 'md5')) {
 	echo 'No change in content of valid domains';
 	exit;
 }
-file_put_contents2($cacheDir.'domains_md5', md5(serialize($domains)));
+if($showDebug) { echo '<br />4: '; echo number_format(memory_get_usage(), 2, '.', "'"); echo ' - '; echo number_format(memory_get_usage(true), 2, '.', "'"); echo '<br />'; }
 
 ksort($domains);
 $bind = unserialize(@file_get_contents($cacheDir.'bind'));
+$bind = (array)$bind;
 $backupDoms = unserialize(@file_get_contents($cacheDir.'domains'));
+$backupDoms = (array)$backupDoms;
 foreach($domains as $name=>$dom) {
 	// domain has changed
 	if($dom->hasValueChanged($backupDoms[$name]->value['value'])) {
@@ -99,6 +102,7 @@ foreach($domains as $name=>$dom) {
 file_put_contents2($cacheDir.'domains', serialize($domains));
 unset($domains);
 unset($backupDoms);
+if($showDebug) { echo '<br />5: '; echo number_format(memory_get_usage(), 2, '.', "'"); echo ' - '; echo number_format(memory_get_usage(true), 2, '.', "'"); echo '<br />'; }
 
 #echo '<pre>Zones : '; print_r($bind['zonesnew']); echo '</pre>';
 #echo '<pre>Zones : '; print_r($bind['zoneslist']); echo '</pre>';
@@ -132,12 +136,14 @@ if($backup != md5(serialize($bind['forwards']))) {
 	$bitRoot .= "\n";
 	#echo '<pre>Forwards :'."\n".$bitForward.'</pre>';
 	#file_put_contents2($bindZonesList.'bit-forward.conf', $bitForward);
+if($showDebug) { echo '<br />6: '; echo number_format(memory_get_usage(), 2, '.', "'"); echo ' - '; echo number_format(memory_get_usage(true), 2, '.', "'"); echo '<br />'; }
 
 
-$backup = @file_get_contents($cacheDir.'zone_list');
-if($backup != md5(serialize($bind['zoneslist']))) {
-	file_put_contents2($cacheDir.'zone_list', md5(serialize($bind['zoneslist'])));
-}
+//$backup = @file_get_contents($cacheDir.'zone_list');
+//if($backup != md5(serialize($bind['zoneslist']))) {
+//	file_put_contents2($cacheDir.'zone_list', md5(serialize($bind['zoneslist'])));
+//}
+
 // generate list of master domains
 	$bitMaster = '';
 	foreach($bind['zoneslist'] as $name) {
@@ -152,7 +158,12 @@ if($backup != md5(serialize($bind['zoneslist']))) {
 		}
 	}
 	#echo '<pre>Masters :'."\n".$bitMaster.'</pre>';
-	file_put_contents2($bindZonesList.'zones-master.conf', $bitMaster);
+	$backup = @file_get_contents($cacheDir.'zones-master.conf');
+	if($backup != md5(json_encode($bitMaster))) {
+		file_put_contents2($cacheDir.'zones-master.conf', md5(json_encode($bitMaster)));
+		file_put_contents2($bindZonesList.'zones-master.conf', $bitMaster);
+	}
+if($showDebug) { echo '<br />7: '; echo number_format(memory_get_usage(), 2, '.', "'"); echo ' - '; echo number_format(memory_get_usage(true), 2, '.', "'"); echo '<br />'; }
 
 
 	// generate root zone
@@ -167,9 +178,16 @@ if($backup != md5(serialize($bind['zoneslist']))) {
 	#$template .= "		IN NS	gluens\n";
 	#$template .= "gluens	IN A	".$authoritativeNS[0][1]."\n";
 	$template .= "\n".$bitRoot;
-	file_put_contents2($bindZonesList.'root-bit.zone', $template);
+
+	#echo root .Bit zone
+	$backup = @file_get_contents($cacheDir.'root-bit.zone');
+	if($backup != md5(json_encode($template))) {
+		file_put_contents2($cacheDir.'root-bit.zone', md5(json_encode($template)));
+		file_put_contents2($bindZonesList.'root-bit.zone', $template);
+	}
 	#echo '<pre>bitRoot :<br />'; print_r($bitRoot); echo '</pre>';
 	#echo '<pre>bitRoot :<br />'; print_r($template); echo '</pre>';
+if($showDebug) { echo '<br />8: '; echo number_format(memory_get_usage(), 2, '.', "'"); echo ' - '; echo number_format(memory_get_usage(true), 2, '.', "'"); echo '<br />'; }
 
 // generate new zones
 foreach((array)$bind['zonesnew'] as $name) {
@@ -197,6 +215,7 @@ foreach((array)$bind['zonesnew'] as $name) {
 }
 unset($bind['zonesnew']);
 file_put_contents2($cacheDir.'bind', serialize($bind));
+if($showDebug) { echo '<br />9: '; echo number_format(memory_get_usage(), 2, '.', "'"); echo ' - '; echo number_format(memory_get_usage(true), 2, '.', "'"); echo '<br />'; }
 
 function file_put_contents2($file, $data) {
 	global $doFileWrites;
@@ -206,6 +225,24 @@ function file_put_contents2($file, $data) {
 	echo "Write : $file<br />";
 }
 
-#echo '<br />'; echo memory_get_usage(); echo '<br />'; echo memory_get_usage(true);
+function cache_changed($file, $data, $func = '') {
+	if($func == 'md5') {
+		$file = dirname($file).'/md5_'.basename($file);
+		$backup = @file_get_contents($file);
+		if($backup != md5(json_encode($data))) {
+			file_put_contents2($file, md5(json_encode($data)));
+			return true;
+		}
+	} else {
+		$backup = @file_get_contents($file);
+		if($backup != json_encode($data)) {
+			file_put_contents2($file, json_encode($data));
+			return true;
+		}
+	}
+	return false;
+}
+
+if($showDebug) { echo '<br />10: '; echo number_format(memory_get_usage(), 2, '.', "'"); echo ' - '; echo number_format(memory_get_usage(true), 2, '.', "'"); echo '<br />'; }
 
 ?>
