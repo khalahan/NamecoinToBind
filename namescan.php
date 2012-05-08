@@ -115,13 +115,13 @@ if($backup != md5(serialize($bind['forwards']))) {
 		foreach($name as $domain=>$ns) {
 			#$bitForward .= 'zone "'.$domain.'" { type forward; forwarders { '.implode("; ", $ns).'; }; };'."\n";
 			foreach($ns as $n) {
-				$n = preg_replace('@[^a-zA-Z0-9_.-]@', '', $n);
+				$n = preg_replace('@[^a-zA-Z0-9_.:-]@', '', $n);
 				if(filter_var($n, FILTER_VALIDATE_IP)) {
-					$bitRoot .= str_replace('.bit', '', $domain)."	IN NS	".str_replace('.bit', '', $domain).".ns\n";
+					$bitRoot .= str_replace('.bit', '', $domain)."	IN NS	ns.".str_replace('.bit', '', $domain)."\n";
 					if(filter_var($n, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-						$bitRoot .= str_replace('.bit', '', $domain).".ns	IN A	".$n."\n";
+						$bitRoot .= "ns.".str_replace('.bit', '', $domain)."	IN A	".$n."\n";
 					} elseif(filter_var($n, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-						$bitRoot .= str_replace('.bit', '', $domain).".ns	IN AAAA	".$n."\n";
+						$bitRoot .= "ns.".str_replace('.bit', '', $domain)."	IN AAAA	".$n."\n";
 					}
 				} else {
 					$bitRoot .= str_replace('.bit', '', $domain)."	IN NS	".$n.(substr($n, -1) == '.' ? '' : '.')."\n";
@@ -163,7 +163,12 @@ if($backup != md5(serialize($bind['zoneslist']))) {
 	$template = str_replace('%%email%%', 'hostmaster.'.$authoritativeNS[0][0], $template);
 	$template = str_replace('%%serial%%', date('YmdHi'), $template);
 	$template .= "		IN NS	".$authoritativeNS[0][0].".\n";
-	$template .= $authoritativeNS[0][0].".	IN A	".$authoritativeNS[0][1]."\n";
+	if (filter_var($authoritativeNS[0][1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+                $template .= $authoritativeNS[0][0].".  IN AAAA ".$authoritativeNS[0][1]."\n";
+        }
+        elseif (filter_var($authoritativeNS[0][1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                $template .= $authoritativeNS[0][0].".  IN A    ".$authoritativeNS[0][1]."\n";
+        }
 	#$template .= "		IN NS	gluens\n";
 	#$template .= "gluens	IN A	".$authoritativeNS[0][1]."\n";
 	$template .= "\n".$bitRoot;
