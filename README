@@ -26,7 +26,6 @@ Edit the file /etc/bind/named.conf.options and add :
 
 * Create the following folder :
 - /etc/bind/dotbit/
-- /etc/bind/dotbit/zones/
 chown www-data -R /etc/bind/dotbit/
 
 * NamecoinToBind configuration :
