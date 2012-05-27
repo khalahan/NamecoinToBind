@@ -35,13 +35,17 @@ class dom extends name {
 		parent::__construct($name, $value);
 	}
 
-	public function isNameValid() {
-		if(!preg_match('@^[d]/@', $this->name)) {
-			$this->errors[] = 'Not in the domain namespace';
+	public function isNameValid($name = '') {
+		if($this)
+			$name = $this->name;
+
+		if(!preg_match('@^[d]/@', $name)) {
+			if($this) $this->errors[] = 'Not in the domain namespace';
 			return false;
 		}
-		if(!preg_match('@^[^/]+/[a-z0-9_-]+$@', $this->name)) {
-			$this->errors[] = 'Not an ascii idn name';
+		
+		if(!preg_match('@^[^/]+/[a-z0-9_-]+$@', $name)) {
+			if($this) $this->errors[] = 'Not an ascii idn name';
 			return false;
 		}
 		return true;
@@ -49,6 +53,10 @@ class dom extends name {
 
 	public function getDomainName($name = '') {
 		return substr($this->value['name'], 2).'.bit';
+	}
+
+	public function getSubDomainName($name = '') {
+		return substr($this->value['name'], 2);
 	}
 
 	public function getUnicodeName($name = '') {
@@ -61,20 +69,35 @@ class dom extends name {
 		}
 	}
 
-	public function isValueJson() {
-		$value = json_decode($this->value['value']);
-		if(isset($value->map)) {
-			$this->json = $value;
+	public function isValueJson($value = '') {
+		if($this)
+			$value = $this->value['value'];
+
+		$value = json_decode($value);
+		if(!is_null($value)) {
+			if($this) $this->json = $value;
 			return true;
 		} else {
-			$this->errors[] = 'Invalid JSON value';
+			if($this) $this->errors[] = 'Invalid JSON value';
 			return false;
 		}
 	}
 
 	private function cleanBadRecords($data) {
-		foreach((array)$data as $recordType=>$recordValue) {
+		$recordsTypesPriority = array(
+			'delegate',
+			'import',
+			'ns',
+			'dns',
+			'translate',
+			'alias',
+			'map',
+			);
+
+		#foreach((array)$data as $recordType=>$recordValue) {
+		foreach($recordsTypesPriority as $recordType) {
 			#echo "RECORD: ".$recordType."<br />";
+			if(!isset($data->$recordType)) continue;
 			switch((string)$recordType){
 			case 'delegate':	// Delegates control of this domain to the given Namecoin name, or a sub-domain entry defined within that name. All other entries are ignored.
 				# "delegate": ["s/example74845"]
@@ -129,9 +152,11 @@ class dom extends name {
 		$mask['ip'] = '@^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$@';
 		$mask['ip6'] = '@^((([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}:[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){5}:([0-9A-Fa-f]{1,4}:)?[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){4}:([0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){3}:([0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){2}:([0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}((b((25[0-5])|(1d{2})|(2[0-4]d)|(d{1,2}))b).){3}(b((25[0-5])|(1d{2})|(2[0-4]d)|(d{1,2}))b))|(([0-9A-Fa-f]{1,4}:){0,5}:((b((25[0-5])|(1d{2})|(2[0-4]d)|(d{1,2}))b).){3}(b((25[0-5])|(1d{2})|(2[0-4]d)|(d{1,2}))b))|(::([0-9A-Fa-f]{1,4}:){0,5}((b((25[0-5])|(1d{2})|(2[0-4]d)|(d{1,2}))b).){3}(b((25[0-5])|(1d{2})|(2[0-4]d)|(d{1,2}))b))|([0-9A-Fa-f]{1,4}::([0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4})|(::([0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){1,7}:))$@';
 		#$mask['ns'] = '@^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))|((([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}:[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){5}:([0-9A-Fa-f]{1,4}:)?[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){4}:([0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){3}:([0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){2}:([0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}((b((25[0-5])|(1d{2})|(2[0-4]d)|(d{1,2}))b).){3}(b((25[0-5])|(1d{2})|(2[0-4]d)|(d{1,2}))b))|(([0-9A-Fa-f]{1,4}:){0,5}:((b((25[0-5])|(1d{2})|(2[0-4]d)|(d{1,2}))b).){3}(b((25[0-5])|(1d{2})|(2[0-4]d)|(d{1,2}))b))|(::([0-9A-Fa-f]{1,4}:){0,5}((b((25[0-5])|(1d{2})|(2[0-4]d)|(d{1,2}))b).){3}(b((25[0-5])|(1d{2})|(2[0-4]d)|(d{1,2}))b))|([0-9A-Fa-f]{1,4}::([0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4})|(::([0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){1,7}:))$@';
-		$mask['ns'] = '@^('.substr($mask['ip'], 1, strlen($mask['ip'])-2).'|'.substr($mask['ip6'], 1, strlen($mask['ip6'])-2).')$@';
-		$mask['alias'] = '@^[a-zA-Z0-9._-]+\.[a-zA-Z0-9]+$@';
+		#$mask['ns'] = '@^('.substr($mask['ip'], 1, strlen($mask['ip'])-2).'|'.substr($mask['ip6'], 1, strlen($mask['ip6'])-2).')$@';
+		$mask['ns'] = '@^([a-zA-Z0-9._-]+\.)*[a-zA-Z0-9._-]+\.?$@';
+		$mask['alias'] = '@^[a-zA-Z0-9._-]+\.[a-zA-Z0-9]+\.?$@';
 
+		#$record = in_array($sub, array('', '_empty_')) ? $this->getSubDomainName($this->name) : $sub;
 		$record = in_array($sub, array('', '_empty_')) ? '@' : $sub;
 		$sub	= in_array($sub, array('', '_empty_')) ? '' : $sub;
 		$fqdn	= $sub . ($sub ? '.' : '') . $domain;
@@ -147,7 +172,8 @@ class dom extends name {
 		foreach((array)$value as $recordType=>$recordValue) {
 			// FIX to allow old syntax
 			$recordType = $recordType && $recordType != '_empty_' ? $recordType : 'ip';
-			#echo "RECORD: ".$recordType."<br />";
+			#echo "RECORD: ".$recordType."<br />"; var_dump($recordValue);
+
 
 			switch((string)$recordType){
 			case 'loc':			#TODO
@@ -171,21 +197,47 @@ class dom extends name {
 				break;
 			case 'ns':
 				foreach((array)$recordValue as $i=>$n) {
+					$n = trim($n);
+					if(!$n)
+						continue;
+
 					// exlude local ip & ip6
 					if(filter_var($n, FILTER_VALIDATE_IP)) {
 						#if(!filter_var($n, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
 						if(preg_match($mask['private_ip'], $n) || preg_match($mask['private_ip6'], $n))
 							continue;
+						$ns = $this->getSubDomainName($this->name).".ns-glue";
+						if(!preg_match($mask['ns'], $ns))
+							continue;
+						if (filter_var($n, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+							$this->flatZones[$domain][$record.".ns-glue"]['ip6'][] = $n;
+						} elseif (filter_var($n, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+							$this->flatZones[$domain][$record.".ns-glue"]['ip'][] = $n;
+						}
+						$n = $ns;
+					} else {
+						$n = $n.(substr($n, -1) == '.' ? '' : '.');
 					}
-					$this->flatZones[$domain][$record][$recordType][] = $n;
+
+					if(!preg_match($mask['ns'], $n))
+						continue;
+
+					$this->flatZones[$domain][$record][$recordType][$n] = true;
 				}
+				if($this->flatZones[$domain][$record][$recordType])
+					$this->flatZones[$domain][$record][$recordType] = (array)array_keys($this->flatZones[$domain][$record][$recordType]);
 				break;
 			case 'ip':
 			case 'ip6':
 				foreach((array)$recordValue as $i=>$n) {
+					$n = trim($n);
 					// resolve host
 					if(!preg_match($mask[$recordType], $n)) {
-						$n = gethostbyname($n);
+						continue;
+						/*if(!preg_match($mask['ns'], $n)) {
+							continue;
+						}
+						$n = gethostbyname($n);*/
 					}
 					if(preg_match($mask[$recordType], $n)) {
 						// only acccept ip/ip6 addresses
@@ -224,16 +276,25 @@ class dom extends name {
 	}
 
 	private function convertFlatToBind() {
-		$rec['ip']			= 'IN  A        ';
-		$rec['ip6']			= 'IN  AAAA     ';
-		$rec['alias']		= 'IN  CNAME    ';
-		$rec['translate']	= 'IN  DNAME    ';
-		foreach($this->flatZones as $fZone=>$fSub) {	
+		$rec['email']		= ' IN  TXT    ';
+		$rec['ip']			= ' IN  A      ';
+		$rec['ip6']			= ' IN  AAAA   ';
+		$rec['ns']			= ' IN  NS     ';
+		$rec['alias']		= ' IN  CNAME  ';
+		$rec['translate']	= ' IN  DNAME  ';
+		foreach($this->flatZones as $fZone=>$fSub) {
 			foreach($fSub as $sub=>$records) {
+				if(strpos($sub, "@") !== FALSE)
+					$subdom = str_replace("@", $this->getSubDomainName($fZone), $sub);
+				else
+					$subdom = $sub.'.'.$this->getSubDomainName($fZone);
+				#$subdom = ($sub!='@'?$sub.'.':'') . $this->getSubDomainName($fZone);
+				#echo "$subdom : $sub - $fZone<br />";
 				foreach($records as $record=>$values) {
 					switch($record) {
 					case 'email':
-						$this->bindZones[$fZone]['email'] = $values[0];
+						#$this->bindZones[$fZone]['email'] = $values[0];
+						#$this->bindForwards[$fZone][] = str_pad($subdom, 15, ' ').$rec[$record].'"Email: '.$values[0].'"';
 						break;
 					case 'alias':
 					case 'translate':
@@ -241,12 +302,16 @@ class dom extends name {
 					case 'ip6':
 						#print_r($values);
 						foreach($values as $value) {
-							$this->bindZones[$fZone][] = str_pad($sub, 8, ' ').' '.$rec[$record].$value;
+							#$this->bindZones[$fZone][] = str_pad($sub, 8, ' ').' '.$rec[$record].$value;
+							#$this->bindForwards[$fZone][] = str_pad($subdom, 15, ' ').$rec[$record].$value;
+							$this->bindForwards[] = str_pad($subdom, 15, ' ').$rec[$record].$value;
 						}
 						break;
 					case 'ns':
 						foreach($values as $value) {
-							$this->bindForwards[($sub!='@'?$sub.'.':'').$fZone][] = $value;
+							#$this->bindForwards[($sub!='@'?$sub.'.':'').$fZone][] = $value;
+							#$this->bindForwards[$fZone][] = str_pad($subdom, 15, ' ').$rec[$record].$value;
+							$this->bindForwards[] = str_pad($subdom, 15, ' ').$rec[$record].$value;
 						}
 					}
 				}
@@ -257,7 +322,7 @@ class dom extends name {
 	public function getBindZones() {
 		$this->flatZones = array();
 		$this->bindZones = array();
-		#echo '<pre>'; print_r($this->value['value']); echo '</pre>';
+		#echo '<pre><b>'; print_r($this->name); echo '</b> : '; print_r($this->value['value']); echo '</pre>';
 		#var_dump($this->json);
 		if(is_object($this->json)) {
 			// expired zone
@@ -271,7 +336,7 @@ class dom extends name {
 			$this->cleanBadRecords($this->j);
 			#echo "<br />Value AFTER : <pre>"; print_r($this->j); echo "</pre>";
 			$this->getFlatZones($this->getDomainName(), '', $this->j);
-			#echo '<pre>'; print_r($this->flatZones); echo '</pre>';
+			#echo "<br />Flat zone : <pre>"; print_r($this->flatZones); echo '</pre>';
 		}
 		#echo '<pre>'; print_r($this->flatZones); echo '</pre>';
 
