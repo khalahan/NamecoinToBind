@@ -4,7 +4,10 @@
 $jsonConnect = 'http://user:pass@127.0.0.1:8336/';
 
 # DNS server names which are authoritative for the .bit zone (the DNS servers you are building/configuring)
-$authoritativeNS[] = array('my-dotbit-server.org', '1.2.3.4');
+$authoritativeNS[] = array('my-dotbit-server.org', array('1.2.3.4', '1.2.3.5', '2001:5::1'));
+
+# Use another template file
+#$templateFile = dirname(__FILE__).'/zone-template-second.conf';
 
 # Allowed namespaces
 $zonesNamespace = array( 'd/' => 'bit', );
