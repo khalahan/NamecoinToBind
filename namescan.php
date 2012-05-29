@@ -1,17 +1,19 @@
 <?php
-error_reporting(E_ALL ^ E_NOTICE);
-#error_reporting(E_ALL);
 $startTime = microtime(true);
-#error_reporting(E_ALL);
 
 require './config.php';
 require './function.php';
 require './jsonRPCClient.php';
 require './name.class.php';
- 
-$rpc = new jsonRPCClient($jsonConnect);
+
+if(isset($showDebug) && $showDebug) {
+	error_reporting(E_ALL ^ E_NOTICE);
+	ini_set('display_errors','On');
+}
+ini_set('memory_limit', 200*1024*1024);
 
 //
+$rpc = new jsonRPCClient($jsonConnect);
 $getinfo = $rpc->getinfo();
 if(!$getinfo_old = get_cache('getinfo')) {
 	$getinfo_old = array('blocks' => 0);
@@ -36,7 +38,7 @@ showDebug(1);
 // there are new names
 echo "New names : ".count($new_names).'<br />';
 format_names(&$new_names, $getinfo['blocks']);
-echo '<pre>'; print_r($new_names);
+#echo '<pre>'; print_r($new_names);
 set_cache('getinfo', $getinfo);
 
 // get list of names block
