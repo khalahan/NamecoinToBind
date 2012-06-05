@@ -1,5 +1,5 @@
-NamecoinToBind 2.0
-==================
+NamecoinToBind 3.0.3
+====================
 
 This version has a first support of the new spec (old spec is still supported for a while) :
 - https://dot-bit.org/Domain_names
@@ -21,6 +21,10 @@ apt-get install idn php5-cli
 * Bind configuration :
 Copy the file etc/bind/named.conf.bit to /etc/bind/ 
 Edit the file /etc/bind/named.conf.options and add :
+- in the "options" block :
+  check-names master ignore;
+
+- at the bottom of the file :
   // .bit zone
   include "/etc/bind/named.conf.bit";
 
