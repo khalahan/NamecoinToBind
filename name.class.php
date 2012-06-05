@@ -36,16 +36,16 @@ class dom extends name {
 	}
 
 	public function isNameValid($name = '') {
-		if($this)
-			$name = $this->name;
+		if(isset($this))
+			$name = $name ? $name : $this->name;
 
 		if(!preg_match('@^[d]/@', $name)) {
-			if($this) $this->errors[] = 'Not in the domain namespace';
+			if(isset($this)) $this->errors[] = 'Not in the domain namespace';
 			return false;
 		}
 		
 		if(!preg_match('@^[^/]+/[a-z0-9_-]+$@', $name)) {
-			if($this) $this->errors[] = 'Not an ascii idn name';
+			if(isset($this)) $this->errors[] = 'Not an ascii idn name';
 			return false;
 		}
 		return true;
@@ -70,15 +70,14 @@ class dom extends name {
 	}
 
 	public function isValueJson($value = '') {
-		if($this)
-			$value = $this->value['value'];
-
+		#var_dump(get_class($this));
+		$value = $value ? $value : $this->value['value'];
 		$value = json_decode($value);
 		if(!is_null($value)) {
-			if($this) $this->json = $value;
+			$this->json = $value;
 			return true;
 		} else {
-			if($this) $this->errors[] = 'Invalid JSON value';
+			$this->errors[] = 'Invalid JSON value';
 			return false;
 		}
 	}
