@@ -71,7 +71,7 @@ class dom extends name {
 
 	public function isValueJson($value = '') {
 		#var_dump(get_class($this));
-		$value = $value ? $value : $this->value['value'];
+		$value = $value ? $value : (isset($this->value['value']) ? $this->value['value'] : NULL);
 		$value = json_decode($value);
 		if(!is_null($value)) {
 			$this->json = $value;
@@ -123,6 +123,7 @@ class dom extends name {
 			case 'alias':		// ignore ip & ip6
 				unset($data->ip);
 				unset($data->ip6);
+				unset($data->translate);
 				break;
 			case 'map':
 				if(isset($data->map)) {
@@ -153,7 +154,8 @@ class dom extends name {
 		#$mask['ns'] = '@^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))|((([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}:[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){5}:([0-9A-Fa-f]{1,4}:)?[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){4}:([0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){3}:([0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){2}:([0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}((b((25[0-5])|(1d{2})|(2[0-4]d)|(d{1,2}))b).){3}(b((25[0-5])|(1d{2})|(2[0-4]d)|(d{1,2}))b))|(([0-9A-Fa-f]{1,4}:){0,5}:((b((25[0-5])|(1d{2})|(2[0-4]d)|(d{1,2}))b).){3}(b((25[0-5])|(1d{2})|(2[0-4]d)|(d{1,2}))b))|(::([0-9A-Fa-f]{1,4}:){0,5}((b((25[0-5])|(1d{2})|(2[0-4]d)|(d{1,2}))b).){3}(b((25[0-5])|(1d{2})|(2[0-4]d)|(d{1,2}))b))|([0-9A-Fa-f]{1,4}::([0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4})|(::([0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){1,7}:))$@';
 		#$mask['ns'] = '@^('.substr($mask['ip'], 1, strlen($mask['ip'])-2).'|'.substr($mask['ip6'], 1, strlen($mask['ip6'])-2).')$@';
 		$mask['ns'] = '@^([a-zA-Z0-9._-]+\.)*[a-zA-Z0-9._-]+\.?$@';
-		$mask['alias'] = '@^[a-zA-Z0-9._-]+\.[a-zA-Z0-9]+\.?$@';
+		$mask['alias'] = '@^([a-zA-Z0-9._-]+\.)*[a-zA-Z0-9._-]+\.?$@';
+		#$mask['alias'] = '@^[a-zA-Z0-9._-]+\.[a-zA-Z0-9]+\.?$@';
 
 		#$record = in_array($sub, array('', '_empty_')) ? $this->getSubDomainName($this->name) : $sub;
 		$record = in_array($sub, array('', '_empty_')) ? '@' : $sub;
@@ -223,7 +225,7 @@ class dom extends name {
 
 					$this->flatZones[$domain][$record][$recordType][$n] = true;
 				}
-				if($this->flatZones[$domain][$record][$recordType])
+				if(isset($this->flatZones[$domain][$record][$recordType]))
 					$this->flatZones[$domain][$record][$recordType] = (array)array_keys($this->flatZones[$domain][$record][$recordType]);
 				break;
 			case 'ip':
@@ -326,7 +328,7 @@ class dom extends name {
 		if(is_object($this->json)) {
 			// expired zone
 			#if($this->value['is_expired'] == 1 || $this->value['expires_in'] < 1)
-			if(isset($this->value['is_expired']) && $this->value['is_expired'] == 1)
+			if(isset($this->value['expired']) && $this->value['expired'] == 1)
 			{
 				return;
 			}

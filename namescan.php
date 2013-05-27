@@ -69,7 +69,7 @@ foreach($new_names as $name) {
 
 	// domain has an invalid json value
 	$dom = new dom($name['name'], $name);
-	if(!$dom->isValueJson($name['value'])) {
+	if(isset($name['value']) && !$dom->isValueJson($name['value'])) {
 		continue;
 	}
 
@@ -208,8 +208,12 @@ function cache_changed($file, $data, $func = 'seri') {
 
 function format_names(&$names, $block) {
 	foreach($names as $id => $name) {
-		$names[$id]['expire'] = $block + $names[$id]['expires_in'];
-		unset($names[$id]['expires_in']);
+		if (isset($names[$id]['expired'])) {
+			unset($names[$id]);
+		} else {
+			$names[$id]['expire'] = $block + $names[$id]['expires_in'];
+			unset($names[$id]['expires_in']);
+		}
 	}
 }
 
