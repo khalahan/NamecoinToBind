@@ -37,7 +37,7 @@ showDebug(1);
 
 // there are new names
 echo "New names : ".count($new_names).'<br />';
-format_names(&$new_names, $getinfo['blocks']);
+format_names($new_names, $getinfo['blocks']);
 #echo '<pre>'; print_r($new_names);
 set_cache('getinfo', $getinfo);
 
