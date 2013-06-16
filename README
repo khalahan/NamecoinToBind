@@ -21,9 +21,6 @@ apt-get install idn php5-cli
 * Bind configuration :
 Copy the file etc/bind/named.conf.bit to /etc/bind/ 
 Edit the file /etc/bind/named.conf.options and add :
-- in the "options" block :
-  check-names master ignore;
-
 - at the bottom of the file :
   // .bit zone
   include "/etc/bind/named.conf.bit";
