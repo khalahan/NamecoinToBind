@@ -120,10 +120,12 @@ class dom extends name {
 			case 'translate':	// delete all subdomains
 				unset($data->map);
 				break;
-			case 'alias':		// ignore ip & ip6
-				unset($data->ip);
-				unset($data->ip6);
-				unset($data->translate);
+			case 'alias':		// remove all except alias & map
+				foreach($data as $k => $v) {
+					if (!in_array($k, array('alias', 'map'))) {
+						unset($data->$k);
+					}
+				}
 				break;
 			case 'map':
 				if(isset($data->map)) {
