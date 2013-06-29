@@ -1,5 +1,8 @@
 <?php
 $startTime = microtime(true);
+if (PHP_SAPI != 'cli') {
+	ob_start();
+}
 
 require './config.php';
 require './function.php';
@@ -21,7 +24,7 @@ if(!$getinfo_old = get_cache('getinfo')) {
 if($getinfo['blocks'] == $getinfo_old['blocks']) {
 	echo 'Still on same block'; exit;
 }
-echo "New blocks : ".($getinfo['blocks'] - $getinfo_old['blocks']).'<br />';
+echo "New blocks : ".($getinfo['blocks'] - $getinfo_old['blocks'])."\n";
 showDebug(0);
 
 
@@ -36,7 +39,7 @@ showDebug(1);
 
 
 // there are new names
-echo "New names : ".count($new_names).'<br />';
+echo "New names : ".count($new_names)."\n";
 format_names($new_names, $getinfo['blocks']);
 #echo '<pre>'; print_r($new_names);
 set_cache('getinfo', $getinfo);
@@ -50,7 +53,7 @@ if(!$bind_tree = get_cache('bind_tree'))
 // remove expired names
 foreach($names_block as $name => $block) {
 	if($block < $getinfo['blocks']) {
-		if(isset($showDebug) && $showDebug) echo 'Expired : '.$name.' ('.$block.')<br />';
+		if(isset($showDebug) && $showDebug) echo 'Expired : '.$name.' ('.$block.')'."\n";
 		unset($names_block[$name]);
 		unset($bind_tree[$name]);
 	}
@@ -63,7 +66,7 @@ $nb_new_names = 0;
 foreach($new_names as $name) {
 	// domain has a non ascii name
 	if(!dom::isNameValid($name['name'])) {
-		if(isset($showErrors) && $showErrors) echo 'Not a valid name : '.$name['name'].'<br />';
+		if(isset($showErrors) && $showErrors) echo 'Not a valid name : '.$name['name']."\n";
 		continue;
 	}
 
@@ -84,7 +87,7 @@ foreach($new_names as $name) {
 if(!$nb_new_names) {
 	echo 'No new bind domain'; exit;
 }
-echo "New domains : ".($nb_new_names).'<br />';
+echo "New domains : ".($nb_new_names)."\n";
 set_cache('names_block', $names_block);
 set_cache('bind_tree', $bind_tree);
 #echo '<pre>'; print_r($bind_tree);
@@ -127,14 +130,14 @@ showDebug(5);
 if($statDir) {
 	$res = $rpc->name_filter("", 0, 0, 0, "stat");
 	file_put_contents2($statDir.'name_count.txt', $res['count']);
-	echo 'NB names : '.$res['count'].'<br />';
+	echo 'NB names : '.$res['count']."\n";
 
 	$res = $rpc->name_filter("^d/", 0, 0, 0, "stat");
 	file_put_contents2($statDir.'domain_count.txt', $res['count']);
-	echo 'NB domains : '.$res['count'].'<br />';
+	echo 'NB domains : '.$res['count']."\n";
 
 	file_put_contents2($statDir.'domain_bind_count.txt', count($bind_tree));
-	echo 'NB bind zones : '.count($bind_tree).'<br />';
+	echo 'NB bind zones : '.count($bind_tree)."\n";
 }
 showDebug(6);
 
@@ -146,7 +149,7 @@ function file_put_contents2($file, $data) {
 	if($doFileWrites) {
 		file_put_contents($file, $data);
 	}
-	echo "Write : $file<br />\n";
+	echo "Write : $file\n";
 }
 
 function cache_getfilename($file, $func = 'seri') {
@@ -220,16 +223,20 @@ function format_names(&$names, $block) {
 function showDebug($txt) {
 	global $showDebug, $startTime;
 	if(!isset($showDebug) || !$showDebug) return;
-	echo '<br />'."\n<b>* ".$txt.' :</b> ';
+	echo "\n<b>* ".$txt.' :</b> ';
 	echo number_format(memory_get_usage()/1024/1024, 1, '.', "'");
 	echo 'MB (';
 	echo number_format(memory_get_usage(true)/1024/1024, 1, '.', "'");
 	echo 'MB) - ';
 	echo number_format(microtime(true) - $startTime, 2, '.', "'").'s';
-	echo '<br />'."\n";
+	echo "\n";
 	flush();
 }
 
 showDebug(10);
 
+if (PHP_SAPI != 'cli') {
+	$buffer = ob_get_clean();
+	echo nl2br($buffer);
+}
 ?>
