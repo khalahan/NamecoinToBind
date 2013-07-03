@@ -4,10 +4,10 @@ if (PHP_SAPI != 'cli') {
 	ob_start();
 }
 
-require './config.php';
-require './function.php';
-require './jsonRPCClient.php';
-require './name.class.php';
+require __DIR__.'/config.php';
+require __DIR__.'/function.php';
+require __DIR__.'/jsonRPCClient.php';
+require __DIR__.'/name.class.php';
 
 if(isset($showDebug) && $showDebug) {
 	error_reporting(E_ALL ^ E_NOTICE);
