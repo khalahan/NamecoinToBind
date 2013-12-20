@@ -198,6 +198,27 @@ class dom extends name {
 					$this->flatZones[$domain][$record][$recordType][0] = (string)$recordValue;
 				}
 				break;
+			case 'ds':
+				foreach((array)$recordValue as $i=>$n) {
+					if(!is_array($n))
+						continue;
+					$tag  = $n[0];
+					$algo = $n[1];
+					$type = $n[2];
+					$hash = strtoupper(bin2hex(base64_decode($n[3])));
+					if(!filter_var($tag, FILTER_VALIDATE_INT) || $tag < 0 || $tag >= 65536)
+						continue;
+					if(!filter_var($algo, FILTER_VALIDATE_INT))
+						continue;
+					if(!filter_var($type, FILTER_VALIDATE_INT))
+						continue;
+
+					$rrdata = "$tag $algo $type $hash";
+					$this->flatZones[$domain][$record][$recordType][$rrdata] = true;
+				}
+				if(isset($this->flatZones[$domain][$record][$recordType]))
+					$this->flatZones[$domain][$record][$recordType] = (array)array_keys($this->flatZones[$domain][$record][$recordType]);
+				break;
 			case 'ns':
 				foreach((array)$recordValue as $i=>$n) {
 					$n = trim($n);
@@ -287,6 +308,7 @@ class dom extends name {
 		$rec['ip']			= ' IN  A      ';
 		$rec['ip6']			= ' IN  AAAA   ';
 		$rec['ns']			= ' IN  NS     ';
+		$rec['ds']			= ' IN  DS     ';
 		$rec['alias']		= ' IN  CNAME  ';
 		$rec['translate']	= ' IN  DNAME  ';
 		foreach($this->flatZones as $fZone=>$fSub) {
@@ -314,6 +336,7 @@ class dom extends name {
 							$this->bindForwards[] = str_pad($subdom, 15, ' ').$rec[$record].$value;
 						}
 						break;
+					case 'ds':
 					case 'ns':
 						foreach($values as $value) {
 							#$this->bindForwards[($sub!='@'?$sub.'.':'').$fZone][] = $value;
