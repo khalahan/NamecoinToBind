@@ -225,6 +225,10 @@ class dom extends name {
 					if(!$n)
 						continue;
 
+					// exclude wildcard ns records - they're invalid per rfc1034
+					if($record === '*')
+						continue;
+
 					// exlude local ip & ip6
 					if(filter_var($n, FILTER_VALIDATE_IP)) {
 						#if(!filter_var($n, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
