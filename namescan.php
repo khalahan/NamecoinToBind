@@ -17,7 +17,12 @@ ini_set('memory_limit', 200*1024*1024);
 
 //
 $rpc = new jsonRPCClient($jsonConnect);
-$getinfo = $rpc->getinfo();
+try {
+	$getinfo = $rpc->getinfo();
+} catch (Exception $e) {
+	sleep(10);
+	$getinfo = $rpc->getinfo();
+}
 if(!$getinfo_old = get_cache('getinfo')) {
 	$getinfo_old = array('blocks' => 0);
 }
@@ -128,16 +133,18 @@ showDebug(5);
 
 // write stats
 if($statDir) {
-	$res = $rpc->name_filter("", 0, 0, 0, "stat");
-	file_put_contents2($statDir.'name_count.txt', $res['count']);
-	echo 'NB names : '.$res['count']."\n";
+	try {
+		$res = $rpc->name_filter("", 0, 0, 0, "stat");
+		file_put_contents2($statDir.'name_count.txt', $res['count']);
+		echo 'NB names : '.$res['count']."\n";
 
-	$res = $rpc->name_filter("^d/", 0, 0, 0, "stat");
-	file_put_contents2($statDir.'domain_count.txt', $res['count']);
-	echo 'NB domains : '.$res['count']."\n";
+		$res = $rpc->name_filter("^d/", 0, 0, 0, "stat");
+		file_put_contents2($statDir.'domain_count.txt', $res['count']);
+		echo 'NB domains : '.$res['count']."\n";
 
-	file_put_contents2($statDir.'domain_bind_count.txt', count($bind_tree));
-	echo 'NB bind zones : '.count($bind_tree)."\n";
+		file_put_contents2($statDir.'domain_bind_count.txt', count($bind_tree));
+		echo 'NB bind zones : '.count($bind_tree)."\n";
+	} catch(Exception $e) {}
 }
 showDebug(6);
 
