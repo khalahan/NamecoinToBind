@@ -10,6 +10,7 @@ Dependencies :
 
 - idn	(php5-idn crash with some domain names, so the idn binary is used)
 - php5-cli
+- php5-json ( php5-json was previously provided by php5-common no longer the case for Ubuntu Saucy )
 - a running namecoin
 
 
